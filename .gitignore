@@ -1,4 +1,3 @@
 src/Server.class
 bin/Server.class
-Server.class
-Client.class
+src/Client.class
