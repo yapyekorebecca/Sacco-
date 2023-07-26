@@ -72,7 +72,7 @@ public class Server {
             while ((userInput = fromclient.nextLine()) != null) {
                  command = userInput.split(" ");
                 if (command.length > 1 && command.length < 5) {
-                   // System.out.println(userInput);
+                    System.out.println(userInput);
                     switch (command[0]) {
                         case "login":
                             if (isValidCredentials(command[1], command[2])) {
