@@ -14,7 +14,7 @@ public class JDBC {
         // check connection
         String url = "jdbc:mysql://localhost:3306/Sacco";
         String username = "root";
-        String password = "Password124";
+        String password = "Password1234";
 
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");

@@ -26,9 +26,11 @@ public class Server {
         Scanner fromclient = null;
         PrintWriter pr = null;
         String message = null;
-        String command =null;
-        String[] chop  = null;
+        String userInput =null;
+        String[] command  = null;
         String SecureMenu = null;
+        int PhoneNumber =0;
+        String MemberNumber = null;
        
         
         
@@ -67,74 +69,59 @@ public class Server {
              "4. LoanRequestStatus LoanApplicationNumber";
 
              
-            while (true) {
-                command = fromclient.nextLine();
-                chop = command.split(" ");
+            while ((userInput = fromclient.nextLine()) != null) {
+                 command = userInput.split(" ");
+                if (command.length > 1 && command.length < 5) {
+                   // System.out.println(userInput);
+                    switch (command[0]) {
+                        case "login":
+                            if (isValidCredentials(command[1], command[2])) {
+                                pr.println("You have successfully logged in. Here is the secured menu:");
 
+                                String[] menuOptions = SecureMenu.split("\n");
+                                for(String option :  menuOptions){
+                                    pr.println(option);
+                                }pr.println("END_MENU");
+                                
+                                
+                            } else {
+                                pr.println("Authentication failed");
+                            }
+                            break;
+                        case "forgotPassword":
+                            if (validateMemberInformation(command[1], command[2])
+                                    .equals("No record found. Return after a day")) {
+                                pr.println("No record found. Return after a day. Your reference number is : " + ReferenceNumber(MemberNumber,PhoneNumber));
+                                        
+                            } // else if(GenerateReferenceNumber())//
+                            else if (validateMemberInformation(command[1], command[2]) == null) {
+                                break;
+                            } else {
+                                pr.println(validateMemberInformation(command[1], command[2]));
+                            }
+                            break;
+                        case "Store Reference Number":
 
-
-               
-            
-                if (command.isEmpty()) {
-                    pr.println("Please specify what you want");
-                    
-                
-                }else if (command.startsWith("login")&& chop.length ==3 ) {
-                    
-                    
-                    String username = chop[1];
-                    String password = chop[2];
-        
-                    if (isValidCredentials(username, password)) {
-                        pr.println("You have successfully logged in. Here is the secured menu:");
-                        
-                       String[] menuOptions = SecureMenu.split("\n");
-                       for (String option : menuOptions) {
-                           pr.println(option);
-                        
-                        }  pr.println("END_MENU");
-                    }else {
-                        pr.println("Invalid credentials");
-                        pr.println("Please supply your Registered PhoneNumber And MemberNumber");
-
-                       
-                        String memberNumberInput = fromclient.next();
-                        int phoneNumberInput = fromclient.nextInt();
-
-                        //  Call the sendPassword method and capture the result
-                        String gh = sendPassword(memberNumberInput, phoneNumberInput);
-
-                        if (gh != null) {
-                            pr.println("Your password is " + gh);
-                        } else {
-                            pr.println("Password not found for the provided user. plaese for the meantime this is your reference number : " + ReferenceNumber(memberNumberInput, phoneNumberInput)  );  
-                        }
-                    
-
-                       
-
+                        case "deposit":
+                            // Handle deposit command
+                            break;
+                        case "requestLoan":
+                            // Handle requestLoan command
+                            break;
+                        case "checkLoanStatus":
+                            // Handle checkLoanStatus command
+                            break;
+                        case "CheckStatement":
+                            // Handle CheckStatement command
+                            break;
+                        default:
+                            pr.println("Invalid command");
                     }
-                        
-                        
-                     
-                } else if (command.startsWith("deposit")&& chop.length ==5) {
-                    
-                    String username = chop[1];
-                    String amount = chop[2];
-                    String dateDeposited = chop[3];
-                    String receiptNumber = chop[4];
 
-        
-                   boolean isDepositSuccesful = deposit(username, amount, dateDeposited, receiptNumber);
-                    if (isDepositSuccesful) {
-                        pr.println("Deposit made successfully");
-                    }
-                    
-                    
-                   
-                }else{
-                    pr.println("Either Command unknown or incomplete ");
+                } else {
+                    pr.println("Unknown command please follow the menu ");
                 }
+
             }
 
                     
@@ -189,15 +176,9 @@ public class Server {
     }
     
     private static boolean deposit(String username ,String amount, String dateDeposited, String receiptNumber) {
-        // dbUrl = "jdbc:mysql://localhost:3306/Sacco";
-        // dbUsername="root";
-        // dbPassword="Password1234";
-        
-        
        
         try {
-            // Connection connection = DriverManager.getConnection(dbUrl, dbUsername, dbPassword);
-
+           
             JDBC jdbcInstance = JDBC.getInstance();
             Connection connection = jdbcInstance.getConnection();
    
@@ -273,7 +254,7 @@ public class Server {
         
     }
 
-    private static int ReferenceNumber(String MemberNumber, int PhoneNumber) {
+    private static int ReferenceNumber(String MemberNumber, int phoneNumber) {
         // String dbUrl = "jdbc:mysql://localhost:3306/Sacco";
         // String dbUsername = "root";
         // String dbPassword = "Password1234";
@@ -290,7 +271,7 @@ public class Server {
             String insertSql = "INSERT INTO issues (MemberNumber, PhoneNumber, DateofRequest) VALUES (?, ?, ?)";
             PreparedStatement insertStatement = connection.prepareStatement(insertSql, Statement.RETURN_GENERATED_KEYS);
             insertStatement.setString(1, MemberNumber);
-            insertStatement.setInt(2, PhoneNumber);
+            insertStatement.setInt(2, phoneNumber);
             insertStatement.setString(3, DateofRequest);
             insertStatement.executeUpdate();
     
@@ -348,4 +329,51 @@ public class Server {
 
         return userId;
     }
+
+
+
+private static String validateMemberInformation(String memberno, String phonenumber) {
+
+    String user_password = null;
+        try {
+            
+            JDBC jdbcInstance = JDBC.getInstance();
+            Connection connection = jdbcInstance.getConnection();
+            try {
+                Statement statement = connection.createStatement();
+                ResultSet result = statement.executeQuery(
+                        "SELECT * FROM users WHERE MemberNumber = '" + memberno + "' AND phoneNumber = '" + phonenumber
+                                + "'");
+                if (result.next()) {
+                     user_password = result.getString("passWord");
+                   // return user_password;
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            } finally {
+                connection.close();
+            }
+            
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return "No record found. Return after a day";
+        }
+        return user_password;
+    }
+
+
+
+
+
+
+
+
+
+
+
 }
+
+
+
+
+ 
