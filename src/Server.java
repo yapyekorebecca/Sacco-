@@ -62,7 +62,7 @@ public class Server {
             pr.println(message);
 
             
-
+            //secure menu to send to the client 
             SecureMenu = "1. Deposit amount datedeposited receiptNumber\n" +
              "2. CheckStatement dateFrom dateTo\n" +
              "3. requestLoan amount paymentPeriodinMonths\n" +
@@ -85,13 +85,14 @@ public class Server {
                                 
                                 
                             } else {
-                                pr.println("Authentication failed");
+                                pr.println("Authentication failed invalid credentials if you have forgoten your password use : forgotPassword  <membernumber>  <phonenumber>");
+                               // sendPassword(MemberNumber, PhoneNumber);
                             }
                             break;
                         case "forgotPassword":
                             if (validateMemberInformation(command[1], command[2])
-                                    .equals("No record found. Return after a day")) {
-                                pr.println("No record found. Return after a day. Your reference number is : " + ReferenceNumber(MemberNumber,PhoneNumber));
+                                    .equals("One match")) {
+                                pr.println("Please  return after a day while your issue has been resolved. Your reference number is : " + ReferenceNumber(MemberNumber,PhoneNumber));
                                         
                             } // else if(GenerateReferenceNumber())//
                             else if (validateMemberInformation(command[1], command[2]) == null) {
@@ -130,7 +131,8 @@ public class Server {
             
         }catch (Exception e) {
 
-            System.out.println(e.getMessage());
+            System.out.println("Error !"+e.getMessage());
+            pr.println("Internal Server run down please try again later!");
         }
 
 
@@ -242,14 +244,14 @@ public class Server {
             resultSet.close();
             selectStatement.close();
             connection.close();
-            //return OTP;
+            return OTP;
 
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
         
 
-       return OTP;
+       return "no password found for the above user ";
         
         
     }
@@ -268,7 +270,7 @@ public class Server {
             Connection connection = jdbcInstance.getConnection();
     
             // Use prepared statement with placeholders to insert the values
-            String insertSql = "INSERT INTO issues (MemberNumber, PhoneNumber, DateofRequest) VALUES (?, ?, ?)";
+            String insertSql = "INSERT INTO issues (MemberNumber, phoneNumber, DateofRequest) VALUES (?, ?, ?)";
             PreparedStatement insertStatement = connection.prepareStatement(insertSql, Statement.RETURN_GENERATED_KEYS);
             insertStatement.setString(1, MemberNumber);
             insertStatement.setInt(2, phoneNumber);
@@ -279,6 +281,7 @@ public class Server {
             ResultSet generatedKeys = insertStatement.getGeneratedKeys();
             if (generatedKeys.next()) {
                 referenceNumber = generatedKeys.getInt(1); // Assuming the ReferenceNumber is an INT column.
+                return referenceNumber;
             }
     
             // Close resources
@@ -290,7 +293,7 @@ public class Server {
             System.out.println("Error: " + e.getMessage());
         }
     
-        return referenceNumber;
+        return 0;
     }
     
 
@@ -332,35 +335,60 @@ public class Server {
 
 
 
-private static String validateMemberInformation(String memberno, String phonenumber) {
+    private static String validateMemberInformation(String MemberNumber, String phonenumber) {
+        String user_password = null;
+        JDBC jdbcInstance = JDBC.getInstance();
+        Connection connection = jdbcInstance.getConnection();
 
-    String user_password = null;
         try {
-            
-            JDBC jdbcInstance = JDBC.getInstance();
-            Connection connection = jdbcInstance.getConnection();
-            try {
-                Statement statement = connection.createStatement();
-                ResultSet result = statement.executeQuery(
-                        "SELECT * FROM users WHERE MemberNumber = '" + memberno + "' AND phoneNumber = '" + phonenumber
-                                + "'");
-                if (result.next()) {
-                     user_password = result.getString("passWord");
-                   // return user_password;
-                }
-            } catch (SQLException e) {
-                e.printStackTrace();
-            } finally {
-                connection.close();
-            }
-            
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return "No record found. Return after a day";
-        }
-        return user_password;
-    }
+            int phoneNumberInt = Integer.parseInt(phonenumber); // Convert the input phonenumber to an integer
 
+            // Use a PreparedStatement to create a parameterized query
+            String query = "SELECT * FROM users WHERE MemberNumber = ? OR phoneNumber = ?";
+            PreparedStatement statement = connection.prepareStatement(query);
+
+            // Set the parameters for the query
+            statement.setString(1, MemberNumber);
+            statement.setInt(2, phoneNumberInt); // Use setInt to set the phoneNumber parameter
+
+            ResultSet result = statement.executeQuery();
+
+            boolean memberFound = false;
+            boolean phoneNumberFound = false;
+
+            while (result.next()) {
+                String foundMemberNumber = result.getString("MemberNumber");
+                int foundPhoneNumber = result.getInt("phoneNumber"); // Get the phoneNumber as an integer from the
+                                                                    
+
+                if (MemberNumber.equals(foundMemberNumber)) {
+                    memberFound = true;
+                    user_password = result.getString("password");
+                }
+
+                if (phoneNumberInt == foundPhoneNumber) {
+                    phoneNumberFound = true;
+                    user_password = result.getString("password");
+                }
+            }
+
+            if (memberFound && phoneNumberFound) {
+                return user_password; // Both match
+            } else if (memberFound || phoneNumberFound) {
+                //to insert the phone number and the MemberNumber into the issues table for the admin to find out the issue 
+                ReferenceNumber(MemberNumber, phoneNumberInt);
+                return "One match"; // One of them matches
+            } else {
+                return "No record found. Return after a day"; // None match
+            }
+        } catch (NumberFormatException e) {
+            System.out.println("Error: Invalid phoneNumber format.");
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+
+        return "Error: An unexpected error occurred.";
+    }
 
 
 
