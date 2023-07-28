@@ -390,7 +390,7 @@ public class Server {
         return "Error: An unexpected error occurred.";
     }
 
-
+ 
     //returns oldaccountbalance
     public static double getOldAccountBalance(int receiptNum)  {
         double balance = 0.0;
