@@ -27,7 +27,7 @@ public class Client {
             
           
             do{
-
+               
                 if (fromServer.hasNextLine()) {
                     String serverResponse = fromServer.nextLine();
                     System.out.println(serverResponse);
@@ -54,7 +54,7 @@ public class Client {
 
                 
 
-               
+                
                 
                 input = clientinput.nextLine(); 
                 pr.println(input);
@@ -63,7 +63,7 @@ public class Client {
                 
 
 
-            }while (!input.equalsIgnoreCase("exit"));
+            }while (!input.equalsIgnoreCase("logout"));
 
             
 

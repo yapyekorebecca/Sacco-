@@ -7,7 +7,7 @@ public class JDBC {
     private Connection connection;
 
     private JDBC() {
-        // Private constructor to prevent direct instantiation.
+        // Private constructor to prevent  instantiation outside this singleton .
     }
 
     public void connect() {
@@ -38,8 +38,7 @@ public class JDBC {
 
     public Connection getConnection() {
         if (connection == null) {
-             //    
-            
+          
         }
         return connection;
     }
