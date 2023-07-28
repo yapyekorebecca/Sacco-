@@ -104,9 +104,13 @@ public class Server {
                                             if (command.length == 4) {
                                                 
                                                 String output = deposit(loggedInUsername, command[1], command[2],command[3]);
+                                                double inputamount = Double.parseDouble(command[1]);
+                                                int fg = Integer.parseInt(command[3]);
+                                                String newBalance =getnewBalance(fg,inputamount);
 
                                                 if (output.equals("yes")) {
-                                                    pr.println("Your deposit has been made.");
+                                                    pr.println("Dear "+ loggedInUsername+" Your deposit of amount : "+inputamount+" has been made and your account balance is : "+getFinalBalance(newBalance) );
+                                                   
                                                 } else if (output.startsWith("Error: ")) {
                                                     pr.println("Your deposit was NOT successful.");
                                                 }
@@ -175,14 +179,14 @@ public class Server {
                 
     }
 
-
+    //deposit method to call
     private static String deposit(String username ,String amount, String dateDeposited, String receiptNumber) {
         try {
             JDBC jdbcInstance = JDBC.getInstance();
             Connection connection = jdbcInstance.getConnection();
             //int receiptNo = Integer.parseInt(receiptNumber);
 
-            String sql = "INSERT INTO deposits (userId, amount, dateDeposited, receiptNumber) VALUES (?, ?, ?, ?)";
+            String sql = "INSERT INTO depository (memberId, amount, dateDeposited, receiptNumber) VALUES (?, ?, ?, ?)";
             PreparedStatement insertStatement = connection.prepareStatement(sql);
             insertStatement.setInt(1, getUserIdByUsername(username));
             insertStatement.setDouble(2, Double.parseDouble(amount));
@@ -190,6 +194,8 @@ public class Server {
             insertStatement.setInt(4, Integer.parseInt(receiptNumber));
             insertStatement.executeUpdate();
 
+           int receiptNum = Integer.parseInt(receiptNumber);
+           double inamount =Double.parseDouble(amount);
             System.out.println("Deposit successfull");
 
             return "yes";
@@ -222,7 +228,7 @@ public class Server {
    
             
 
-            String sql = "SELECT * FROM users WHERE username = ? AND password = ?";
+            String sql = "SELECT * FROM member WHERE username = ? AND password = ?";
             PreparedStatement statement = connection.prepareStatement(sql);
             statement.setString(1, username);
             statement.setString(2, password);
@@ -243,43 +249,7 @@ public class Server {
     
    
 
-    // private static String deposit(String username, String amount, String dateDeposited, String receiptNumber) {
-        
-
-    //     try {
-    //         JDBC jdbcInstance = JDBC.getInstance();
-    //         Connection connection = jdbcInstance.getConnection();
-    //         //int receiptNo = Integer.parseInt(receiptNumber);
-
-    //         String sql = "INSERT INTO deposits (userId, amount, dateDeposited, receiptNumber) VALUES (?, ?, ?, ?)";
-    //         PreparedStatement insertStatement = connection.prepareStatement(sql);
-    //         insertStatement.setInt(1, getUserIdByUsername(username));
-    //         insertStatement.setDouble(2, Double.parseDouble(amount));
-    //         insertStatement.setDate(3, Date.valueOf(dateDeposited));
-    //         insertStatement.setInt(4, Integer.parseInt(receiptNumber));
-    //         insertStatement.executeUpdate();
-
-    //         System.out.println("Deposit successfull");
-
-    //         return "yes";
-           
-    //     } catch (SQLException e) {
-    //         // Print the detailed error message and stack trace
-    //         e.printStackTrace();
-    //         return "Error: Failed to deposit. Please check the server logs for more information.";
-    //     } catch (NumberFormatException e) {
-    //         // Print the detailed error message and stack trace
-    //         e.printStackTrace();
-    //         return "Error: Invalid receiptNumber format.";
-            
-    //     } catch (Exception e) {
-    //         // Print the detailed error message and stack trace
-    //         e.printStackTrace();
-    //         return "Error: An unexpected error occurred during deposit.";
-            
-    //     }
-    // }
-
+   
 
 
 
@@ -337,17 +307,17 @@ public class Server {
             JDBC jdbcInstance = JDBC.getInstance();
             Connection connection = jdbcInstance.getConnection();
            
-            String selectSql = "SELECT ID FROM users WHERE username = ?";
+            String selectSql = "SELECT memberId FROM member WHERE username = ?";
             PreparedStatement selectStatement = connection.prepareStatement(selectSql);
             selectStatement.setString(1, username);
             ResultSet resultSet = selectStatement.executeQuery();
 
             
             if (resultSet.next()) {
-                userId = resultSet.getInt("ID");
+                userId = resultSet.getInt("memberId");
                 return userId;
             }else {
-                System.out.println("No userId found for the above username");
+                System.out.println("No memberId found for the above username");
                 
             }
 
@@ -421,11 +391,108 @@ public class Server {
     }
 
 
+    //returns oldaccountbalance
+    public static double getOldAccountBalance(int receiptNum)  {
+        double balance = 0.0;
+        
+        String query = "SELECT m.accountBalance FROM member m  INNER JOIN depository d ON m.memberId = d.memberId  WHERE d.receiptNumber = ?";
+
+
+        try{
+
+            JDBC jdbcInstance = JDBC.getInstance();
+            Connection connection = jdbcInstance.getConnection();
+             PreparedStatement statement = connection.prepareStatement(query);
+             
+            statement.setInt(1, receiptNum);
+
+            ResultSet resultSet = statement.executeQuery();
+                if (resultSet.next()) {
+                    balance = resultSet.getDouble("accountBalance");
+
+                }
+            
+        }catch(Exception e){
+            System.out.println("Error !:" +e.getMessage());
+        }
+
+        return balance;
+    }
 
 
 
 
+    ////method to update the balance in the members table     
+      public static String getnewBalance(int receiptNum,double inamount) {
+        try {
+            // Connect to the database and fetch the current balance
+            double oldbalance = getOldAccountBalance(receiptNum);
 
+            // Update the balance with the deposited amount
+            double newBalance = oldbalance + inamount;
+
+            // Save the new balance to the database (you need an UPDATE query)
+
+            // For example:
+            String updateQuery = "UPDATE member m " +
+                    "JOIN depository d ON m.memberId = d.memberId " +
+                    "SET m.accountBalance = ? " +
+                    "WHERE d.receiptNumber = ?";
+
+            
+                JDBC jdbcInstance = JDBC.getInstance();
+                Connection connection = jdbcInstance.getConnection();
+                PreparedStatement statement = connection.prepareStatement(updateQuery) ;
+                statement.setDouble(1, newBalance);
+                statement.setInt(2, receiptNum);
+                statement.executeUpdate();
+            
+
+            // Log the successful deposit and return true
+            System.out.println("balance updated successfuly");
+            return "yay";
+        } catch (SQLException e) {
+            e.printStackTrace();
+            // If there's an error, log the failure and return false
+            System.out.println("Balance not updated");
+            return "oops!";
+        }
+    }
+
+
+
+    //method to get the final balance after update
+     public static double getFinalBalance(String username)  {
+        double balance =  Double.MIN_VALUE;
+
+        
+        
+        
+        String query = "SELECT accountBalance FROM member where username = ?";
+
+        try{
+
+            JDBC jdbcInstance = JDBC.getInstance();
+            Connection connection = jdbcInstance.getConnection();
+            PreparedStatement statement = connection.prepareStatement(query);
+             
+            statement.setString(1, username);
+
+            ResultSet resultSet = statement.executeQuery();
+                
+                if (resultSet.next()) {
+
+                    balance = resultSet.getDouble("accountBalance");
+
+                }
+                
+            
+        }catch(Exception e){
+            System.out.println("Error !:" +e.getMessage());
+        }
+
+        return balance;
+    }
 
 
 
