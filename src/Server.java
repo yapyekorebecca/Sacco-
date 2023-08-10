@@ -224,7 +224,7 @@ public class Server {
            
 
             JDBC jdbcInstance = JDBC.getInstance();
-            Connection connection = jdbcInstance.getConnection();
+            Connection connection = jdbcInstance.getConnection(); 
    
             
 
